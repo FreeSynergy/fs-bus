@@ -44,6 +44,10 @@ pub trait TopicHandler: Send + Sync {
     fn topic_pattern(&self) -> &str;
 
     /// Process an event that matched this handler's pattern.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BusError`] if the handler fails to process the event.
     async fn handle(&self, event: &Event) -> Result<(), BusError>;
 }
 
@@ -54,6 +58,7 @@ pub trait TopicHandler: Send + Sync {
 /// - `#` in `pattern` matches any number of dot-separated segments.
 /// - `*` matches exactly one segment (no dots).
 /// - Anything else must equal the corresponding segment literally.
+#[must_use]
 pub fn topic_matches(pattern: &str, topic: &str) -> bool {
     if pattern == "#" {
         return true;
@@ -63,10 +68,9 @@ pub fn topic_matches(pattern: &str, topic: &str) -> bool {
 
     loop {
         match (pat_parts.next(), top_parts.next()) {
-            (Some("#"), _) => return true,
-            (Some("*"), Some(_)) => continue,
-            (Some(p), Some(t)) if p == t => continue,
-            (None, None) => return true,
+            (Some("#"), _) | (None, None) => return true,
+            (Some("*"), Some(_)) => {}
+            (Some(p), Some(t)) if p == t => {}
             _ => return false,
         }
     }

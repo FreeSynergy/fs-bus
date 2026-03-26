@@ -38,18 +38,6 @@ impl Default for RetryPolicy {
 ///
 /// Events that fail after all retry attempts are passed to an `on_failed`
 /// callback instead of being silently dropped.
-///
-/// # Example
-///
-/// ```rust,ignore
-/// use fs_bus::{EventBuffer, RetryPolicy, Router, Event};
-///
-/// let mut buf = EventBuffer::new(RetryPolicy::default());
-/// buf.push(event);
-/// buf.flush(&router, |ev, err| {
-///     eprintln!("failed: {} — {}", ev.topic(), err);
-/// }).await;
-/// ```
 pub struct EventBuffer {
     queue: VecDeque<Event>,
     policy: RetryPolicy,
@@ -57,6 +45,7 @@ pub struct EventBuffer {
 
 impl EventBuffer {
     /// Create a new buffer with the given retry policy.
+    #[must_use]
     pub fn new(policy: RetryPolicy) -> Self {
         Self {
             queue: VecDeque::new(),
@@ -65,6 +54,7 @@ impl EventBuffer {
     }
 
     /// Create a buffer with the default retry policy.
+    #[must_use]
     pub fn with_defaults() -> Self {
         Self::new(RetryPolicy::default())
     }
@@ -75,22 +65,22 @@ impl EventBuffer {
     }
 
     /// Number of events currently buffered.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.queue.len()
     }
 
     /// `true` when the buffer is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.queue.is_empty()
     }
 
     /// Flush all buffered events through `router`.
     ///
-    /// Each event is dispatched with exponential backoff. If a dispatch produces
-    /// at least one non-error result it is considered delivered. Events that
-    /// exhaust all retry attempts are passed to `on_failed`.
-    ///
-    /// The buffer is empty after this call regardless of delivery outcome.
+    /// Each event is dispatched with exponential backoff. Events that exhaust
+    /// all retry attempts are passed to `on_failed`. The buffer is empty after
+    /// this call regardless of delivery outcome.
     pub async fn flush<F>(&mut self, router: &Router, mut on_failed: F)
     where
         F: FnMut(Event, BusError),
@@ -126,8 +116,7 @@ impl EventBuffer {
 
         let op = || async {
             let results = router.dispatch(event).await;
-            // Succeed if there are no errors (or no handlers at all).
-            let errors: Vec<_> = results.into_iter().filter_map(|r| r.err()).collect();
+            let errors: Vec<_> = results.into_iter().filter_map(Result::err).collect();
             if errors.is_empty() {
                 Ok(())
             } else {
@@ -135,7 +124,7 @@ impl EventBuffer {
                     event.topic(),
                     errors
                         .iter()
-                        .map(|e| e.to_string())
+                        .map(ToString::to_string)
                         .collect::<Vec<_>>()
                         .join("; "),
                 ))
@@ -163,7 +152,7 @@ mod tests {
 
     #[async_trait]
     impl TopicHandler for OkHandler {
-        fn topic_pattern(&self) -> &str {
+        fn topic_pattern(&self) -> &'static str {
             "#"
         }
         async fn handle(&self, _: &Event) -> Result<(), BusError> {

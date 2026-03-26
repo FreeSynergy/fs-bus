@@ -28,11 +28,13 @@ pub enum BusError {
 
 impl BusError {
     /// Convenience constructor for serialization errors.
+    #[must_use]
     pub fn serialization(msg: impl Into<String>) -> Self {
         Self::Serialization(msg.into())
     }
 
     /// Convenience constructor for handler errors.
+    #[must_use]
     pub fn handler(topic: impl Into<String>, message: impl Into<String>) -> Self {
         Self::Handler {
             topic: topic.into(),
@@ -41,11 +43,13 @@ impl BusError {
     }
 
     /// Convenience constructor for transform errors.
+    #[must_use]
     pub fn transform(msg: impl Into<String>) -> Self {
         Self::Transform(msg.into())
     }
 
     /// Convenience constructor for internal errors.
+    #[must_use]
     pub fn internal(msg: impl Into<String>) -> Self {
         Self::Internal(msg.into())
     }

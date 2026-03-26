@@ -13,10 +13,7 @@ use crate::topic::topic_matches;
 /// A persistent trigger that fires an event whenever a matching condition is met.
 ///
 /// Standing orders are stored in the DB and survive restarts. The engine checks
-/// them whenever:
-/// - A new service of `trigger_role` is installed/appears on the bus.
-/// - An event on `topic` arrives that matches the order's filter (for
-///   recurring triggers).
+/// them whenever a new service of `trigger_role` is installed/appears on the bus.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StandingOrder {
     /// Unique identifier.
@@ -24,7 +21,6 @@ pub struct StandingOrder {
     /// Human-readable name for this standing order.
     pub name: String,
     /// The role whose appearance triggers this order (e.g. `"chat"`, `"iam"`).
-    /// When a service advertising this role connects, the order fires.
     pub trigger_role: String,
     /// Topic to publish when the order fires.
     pub topic: String,
@@ -36,6 +32,7 @@ pub struct StandingOrder {
 
 impl StandingOrder {
     /// Create a new enabled standing order.
+    #[must_use]
     pub fn new(
         name: impl Into<String>,
         trigger_role: impl Into<String>,
@@ -55,6 +52,7 @@ impl StandingOrder {
     /// Create an event from this standing order, attributed to `source`.
     ///
     /// # Errors
+    ///
     /// Returns [`BusError`] if payload serialization fails.
     pub fn to_event(&self, source: &str) -> Result<Event, BusError> {
         Ok(Event {
@@ -76,6 +74,7 @@ pub struct StandingOrdersEngine {
 
 impl StandingOrdersEngine {
     /// Create an empty engine.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -103,9 +102,7 @@ impl StandingOrdersEngine {
     }
 
     /// Generate events for all standing orders triggered by a new `role` appearing.
-    ///
-    /// Call this when a service advertising `role` connects or is installed.
-    /// Returns one [`Event`] per enabled matching order.
+    #[must_use]
     pub fn trigger_for_role(&self, role: &str, source: &str) -> Vec<Result<Event, BusError>> {
         self.orders
             .iter()
@@ -115,9 +112,7 @@ impl StandingOrdersEngine {
     }
 
     /// Generate events for all standing orders whose topic matches `topic`.
-    ///
-    /// Used for recurring triggers: when an event on `topic` arrives the engine
-    /// may fire additional orders that react to it.
+    #[must_use]
     pub fn trigger_for_topic(&self, topic: &str, source: &str) -> Vec<Result<Event, BusError>> {
         self.orders
             .iter()
@@ -127,11 +122,13 @@ impl StandingOrdersEngine {
     }
 
     /// Number of registered standing orders.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.orders.len()
     }
 
     /// Returns `true` if there are no registered standing orders.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.orders.is_empty()
     }

@@ -1,5 +1,5 @@
 #![deny(clippy::all, clippy::pedantic, warnings)]
-//! Async event bus for FreeSynergy.
+//! Async event bus for `FreeSynergy`.
 //!
 //! Provides topic-based event routing, buffered delivery with exponential-backoff
 //! retry, role-based subscriptions, standing orders, configurable routing rules,

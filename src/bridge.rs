@@ -2,10 +2,6 @@
 //
 // A BusBridge forwards matching events to a remote bus instance over HTTP.
 // It implements TopicHandler so it can be registered directly in the Router.
-//
-// Rights cascade (J8 double-checkpoint):
-//   1. Local bus checks if the publishing role has `bus.forward` permission.
-//   2. Remote bus checks if the bridging identity has read permission for the topic.
 
 use std::sync::Arc;
 
@@ -55,6 +51,7 @@ pub struct BusBridge {
 
 impl BusBridge {
     /// Create a bridge from the given config.
+    #[must_use]
     pub fn new(config: BusBridgeConfig) -> Self {
         Self {
             config,
@@ -63,6 +60,7 @@ impl BusBridge {
     }
 
     /// Returns `true` if the bridge should forward an event on `topic`.
+    #[must_use]
     fn should_forward(&self, topic: &str) -> bool {
         self.config
             .allowed_topics
@@ -96,14 +94,13 @@ impl BusBridge {
 
 #[async_trait]
 impl TopicHandler for BusBridge {
-    /// Match everything — the bridge filters internally via `allowed_topics`.
     fn topic_pattern(&self) -> &str {
         "#"
     }
 
     async fn handle(&self, event: &Event) -> Result<(), BusError> {
         if !self.should_forward(event.topic()) {
-            return Ok(()); // not our topic — silently skip
+            return Ok(());
         }
         self.forward(event).await
     }

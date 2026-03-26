@@ -1,13 +1,10 @@
-// fs-bus/src/message_bus.rs — Main MessageBus orchestrator (J1-J7).
+// fs-bus/src/message_bus.rs — Main MessageBus orchestrator.
 //
 // Ties together:
 //   - Router (topic dispatch)
 //   - SubscriptionManager (role → topic filter registry)
 //   - StandingOrdersEngine (persistent trigger rules)
 //   - RoutingConfig (TOML-based delivery/storage rules)
-//
-// Storage (event_log, subscriptions table) is handled externally — consumers
-// should persist events via the `on_event` callback or a BusStore trait impl.
 
 use std::sync::Arc;
 
@@ -39,11 +36,13 @@ pub struct PublishedEvent {
 
 impl PublishedEvent {
     /// Returns `true` if any handler returned an error.
+    #[must_use]
     pub fn has_errors(&self) -> bool {
-        self.handler_results.iter().any(|r| r.is_err())
+        self.handler_results.iter().any(Result::is_err)
     }
 
     /// Collect all handler errors.
+    #[must_use]
     pub fn errors(&self) -> Vec<&BusError> {
         self.handler_results
             .iter()
@@ -52,6 +51,7 @@ impl PublishedEvent {
     }
 
     /// Returns `true` if the event was delivered to at least one subscription.
+    #[must_use]
     pub fn was_delivered(&self) -> bool {
         !self.delivered_to.is_empty()
     }
@@ -60,17 +60,6 @@ impl PublishedEvent {
 // ── MessageBus ────────────────────────────────────────────────────────────────
 
 /// The main bus: publish events, manage subscriptions, fire standing orders.
-///
-/// # Usage
-///
-/// ```rust,ignore
-/// let mut bus = MessageBus::default();
-/// bus.subscribe(Subscription::new("chat", "chat.*"));
-/// bus.add_standing_order(StandingOrder::new("greet-chat", "chat", "system.hello", json!({})));
-///
-/// let ev = Event::new("chat.message", "iam", json!({"text": "Hi!"})).unwrap();
-/// let result = bus.publish(BusMessage::fire(ev)).await;
-/// ```
 #[derive(Default)]
 pub struct MessageBus {
     router: Router,
@@ -81,11 +70,13 @@ pub struct MessageBus {
 
 impl MessageBus {
     /// Create an empty bus.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Create a bus pre-loaded with routing config.
+    #[must_use]
     pub fn with_config(config: RoutingConfig) -> Self {
         Self {
             config,
@@ -96,12 +87,20 @@ impl MessageBus {
     // ── Configuration ──────────────────────────────────────────────────────────
 
     /// Load routing rules from a TOML string. Replaces existing config.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BusError::Internal`] if the TOML content is invalid.
     pub fn load_config_toml(&mut self, toml: &str) -> Result<(), BusError> {
         self.config = RoutingConfig::from_toml(toml)?;
         Ok(())
     }
 
     /// Load routing rules from a file. Replaces existing config.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BusError::Internal`] if the file cannot be read or TOML is invalid.
     pub fn load_config_file(&mut self, path: &str) -> Result<(), BusError> {
         self.config = RoutingConfig::load(path)?;
         Ok(())
@@ -120,6 +119,7 @@ impl MessageBus {
     }
 
     /// Returns all subscriptions for a given role.
+    #[must_use]
     pub fn subscriptions_for_role(&self, role: &str) -> Vec<&Subscription> {
         self.subscriptions.for_role(role)
     }
@@ -137,9 +137,7 @@ impl MessageBus {
     }
 
     /// Fire all standing orders triggered by `role` appearing on the bus.
-    ///
-    /// Returns the generated events (ready to publish). Standing order events
-    /// are attributed to `"fs-bus"` as the source.
+    #[must_use]
     pub fn trigger_role(&self, role: &str) -> Vec<Result<Event, BusError>> {
         self.standing_orders.trigger_for_role(role, "fs-bus")
     }
@@ -154,24 +152,15 @@ impl MessageBus {
     // ── Publishing ─────────────────────────────────────────────────────────────
 
     /// Publish a [`BusMessage`] to all matching subscribers and handlers.
-    ///
-    /// Steps:
-    /// 1. Resolve delivery + storage from the routing config (config may override
-    ///    the message's explicit values when the config has a higher-priority match).
-    /// 2. Dispatch to all registered [`TopicHandler`]s via the router.
-    /// 3. Collect the matching subscription roles for the return value.
     pub async fn publish(&self, msg: BusMessage) -> PublishedEvent {
         let topic = msg.event.topic().to_string();
         let source_role = msg.event.meta.source.clone();
 
-        // Resolve final delivery + storage from config (config wins over message default).
         let resolved_delivery = self.config.delivery_for(&topic, Some(&source_role));
         let resolved_storage = self.config.storage_for(&topic, Some(&source_role));
 
-        // Dispatch to router (handles, bridges, etc.).
         let handler_results = self.router.dispatch(&msg.event).await;
 
-        // Collect which roles receive this event (matching subscriptions).
         let delivered_to: Vec<String> = self
             .subscriptions
             .matching(&topic, None)
@@ -203,16 +192,19 @@ impl MessageBus {
     // ── Diagnostics ───────────────────────────────────────────────────────────
 
     /// Number of active subscriptions.
+    #[must_use]
     pub fn subscription_count(&self) -> usize {
         self.subscriptions.len()
     }
 
     /// Number of registered standing orders.
+    #[must_use]
     pub fn standing_order_count(&self) -> usize {
         self.standing_orders.len()
     }
 
     /// Number of registered route handlers.
+    #[must_use]
     pub fn handler_count(&self) -> usize {
         self.router.handler_count()
     }
@@ -254,7 +246,7 @@ priority      = 10
         bus.load_config_toml(toml).unwrap();
 
         let ev = Event::new("auth.login", "iam", json!({})).unwrap();
-        let msg = BusMessage::fire(ev); // fire-and-forget by default
+        let msg = BusMessage::fire(ev);
         let result = bus.publish(msg).await;
 
         assert_eq!(result.delivery, DeliveryType::Guaranteed);

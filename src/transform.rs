@@ -7,10 +7,12 @@ use crate::event::Event;
 
 /// Transforms one [`Event`] into another — useful for payload mapping,
 /// enrichment, or format conversion between pipeline stages.
-///
-/// Implement this trait to plug custom transformation logic into the bus.
 pub trait Transform: Send + Sync {
     /// Apply this transform to `event`, returning the (possibly modified) event.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BusError`] if the transformation fails.
     fn transform(&self, event: &Event) -> Result<Event, BusError>;
 }
 
@@ -23,6 +25,7 @@ pub struct ChainTransform {
 
 impl ChainTransform {
     /// Build a chain from a list of transforms.
+    #[must_use]
     pub fn new(transforms: Vec<Box<dyn Transform>>) -> Self {
         Self { transforms }
     }
@@ -42,15 +45,10 @@ impl Transform for ChainTransform {
 
 /// Transforms the JSON payload of an event through a Tera template.
 ///
-/// The template receives the event payload fields as variables.
-/// The rendered output becomes the new `payload` as a JSON string.
-///
 /// Requires the `tera-transform` feature.
 #[cfg(feature = "tera-transform")]
 pub struct TeraTransform {
-    /// Tera instance with the template pre-registered.
     engine: tera::Tera,
-    /// Name of the template to render.
     template_name: String,
 }
 
@@ -58,7 +56,9 @@ pub struct TeraTransform {
 impl TeraTransform {
     /// Build a [`TeraTransform`] from a template string.
     ///
-    /// `name` is used to identify the template inside the Tera engine.
+    /// # Errors
+    ///
+    /// Returns [`BusError::Transform`] if the template fails to compile.
     pub fn new(name: impl Into<String>, template: &str) -> Result<Self, BusError> {
         let name = name.into();
         let mut engine = tera::Tera::default();

@@ -30,6 +30,7 @@ pub struct Subscription {
 
 impl Subscription {
     /// Build a new subscription with a generated ID.
+    #[must_use]
     pub fn new(subscriber_role: impl Into<String>, topic_filter: impl Into<String>) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -41,18 +42,21 @@ impl Subscription {
     }
 
     /// Restrict this subscription to a specific service instance.
+    #[must_use]
     pub fn with_inst_tag(mut self, tag: impl Into<String>) -> Self {
         self.inst_tag = Some(tag.into());
         self
     }
 
     /// Revoke read access (subscription exists but events are filtered).
+    #[must_use]
     pub fn deny_read(mut self) -> Self {
         self.granted_read = false;
         self
     }
 
     /// Returns `true` if this subscription matches `topic` and `source_inst`.
+    #[must_use]
     pub fn matches(&self, topic: &str, source_inst: Option<&str>) -> bool {
         if !self.granted_read {
             return false;
@@ -75,17 +79,14 @@ impl Subscription {
 ///
 /// The bus calls [`SubscriptionManager::matching`] on every published event
 /// to determine which roles should receive it.
-///
-/// For persistence, load subscriptions from the `subscriptions` table at
-/// startup and call [`add`](SubscriptionManager::add) for each row.
 #[derive(Debug, Default)]
 pub struct SubscriptionManager {
-    // keyed by Uuid for O(1) removal
     subs: HashMap<Uuid, Subscription>,
 }
 
 impl SubscriptionManager {
     /// Create an empty manager.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -105,6 +106,7 @@ impl SubscriptionManager {
     /// Returns all subscriptions whose filter matches `topic`.
     ///
     /// `source_inst` is the instance tag of the publishing service (if any).
+    #[must_use]
     pub fn matching<'a>(&'a self, topic: &str, source_inst: Option<&str>) -> Vec<&'a Subscription> {
         self.subs
             .values()
@@ -113,6 +115,7 @@ impl SubscriptionManager {
     }
 
     /// Returns all subscriptions for a given role.
+    #[must_use]
     pub fn for_role<'a>(&'a self, role: &str) -> Vec<&'a Subscription> {
         self.subs
             .values()
@@ -121,11 +124,13 @@ impl SubscriptionManager {
     }
 
     /// Total number of active subscriptions.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.subs.len()
     }
 
     /// Returns `true` if there are no subscriptions.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.subs.is_empty()
     }

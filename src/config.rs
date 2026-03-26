@@ -8,7 +8,7 @@ use crate::topic::topic_matches;
 
 // ── RoutingRule ───────────────────────────────────────────────────────────────
 
-/// A single routing rule: maps (topic_pattern, optional source_role) → delivery + storage policy.
+/// A single routing rule: maps (`topic_pattern`, optional `source_role`) → delivery + storage policy.
 ///
 /// Rules are evaluated in descending `priority` order; the first match wins.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,6 +39,7 @@ fn default_true() -> bool {
 
 impl RoutingRule {
     /// Returns `true` if this rule matches `topic` from `source_role`.
+    #[must_use]
     pub fn matches(&self, topic: &str, source_role: Option<&str>) -> bool {
         if !self.enabled {
             return false;
@@ -89,6 +90,10 @@ pub struct RoutingConfig {
 
 impl RoutingConfig {
     /// Parse from a TOML string.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BusError::Internal`] if the TOML content is invalid.
     pub fn from_toml(content: &str) -> Result<Self, BusError> {
         let mut cfg: Self = toml::from_str(content)
             .map_err(|e| BusError::internal(format!("routing config parse error: {e}")))?;
@@ -97,6 +102,10 @@ impl RoutingConfig {
     }
 
     /// Load from a file path.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BusError::Internal`] if the file cannot be read or TOML is invalid.
     pub fn load(path: &str) -> Result<Self, BusError> {
         let content = std::fs::read_to_string(path)
             .map_err(|e| BusError::internal(format!("cannot read {path}: {e}")))?;
@@ -104,11 +113,13 @@ impl RoutingConfig {
     }
 
     /// Find the first matching rule for `topic` emitted by `source_role`.
+    #[must_use]
     pub fn match_rule(&self, topic: &str, source_role: Option<&str>) -> Option<&RoutingRule> {
         self.rules.iter().find(|r| r.matches(topic, source_role))
     }
 
     /// Returns the delivery type for `topic`. Falls back to fire-and-forget.
+    #[must_use]
     pub fn delivery_for(&self, topic: &str, source_role: Option<&str>) -> DeliveryType {
         self.match_rule(topic, source_role)
             .map(|r| r.delivery.clone())
@@ -116,6 +127,7 @@ impl RoutingConfig {
     }
 
     /// Returns the storage type for `topic`. Falls back to no-store.
+    #[must_use]
     pub fn storage_for(&self, topic: &str, source_role: Option<&str>) -> StorageType {
         self.match_rule(topic, source_role)
             .map(|r| r.storage.clone())
@@ -123,11 +135,13 @@ impl RoutingConfig {
     }
 
     /// Total number of rules.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.rules.len()
     }
 
     /// Returns `true` if no rules are configured.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.rules.is_empty()
     }

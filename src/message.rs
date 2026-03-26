@@ -22,6 +22,7 @@ pub enum DeliveryType {
 
 impl DeliveryType {
     /// String form used in DB and config files.
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::FireAndForget => "fire-and-forget",
@@ -56,6 +57,7 @@ pub enum StorageType {
 
 impl StorageType {
     /// String form used in DB and config files.
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::NoStore => "no-store",
@@ -92,6 +94,7 @@ pub struct BusMessage {
 
 impl BusMessage {
     /// Build a message with explicit delivery and storage policies.
+    #[must_use]
     pub fn new(event: Event, delivery: DeliveryType, storage: StorageType) -> Self {
         Self {
             event,
@@ -101,6 +104,7 @@ impl BusMessage {
     }
 
     /// Fire-and-forget convenience constructor (no storage).
+    #[must_use]
     pub fn fire(event: Event) -> Self {
         Self {
             event,
@@ -110,6 +114,7 @@ impl BusMessage {
     }
 
     /// Guaranteed delivery with until-ack storage.
+    #[must_use]
     pub fn guaranteed(event: Event) -> Self {
         Self {
             event,
@@ -119,6 +124,7 @@ impl BusMessage {
     }
 
     /// Persistent standing order.
+    #[must_use]
     pub fn standing(event: Event) -> Self {
         Self {
             event,
@@ -128,6 +134,7 @@ impl BusMessage {
     }
 
     /// Return the topic of the inner event.
+    #[must_use]
     pub fn topic(&self) -> &str {
         self.event.topic()
     }

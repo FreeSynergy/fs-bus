@@ -14,11 +14,13 @@ pub struct EventId(Uuid);
 
 impl EventId {
     /// Generate a new random event ID.
+    #[must_use]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
 
     /// Return the underlying UUID.
+    #[must_use]
     pub fn as_uuid(&self) -> &Uuid {
         &self.0
     }
@@ -53,6 +55,7 @@ pub struct EventMeta {
 
 impl EventMeta {
     /// Create new metadata for `topic` from `source`.
+    #[must_use]
     pub fn new(topic: impl Into<String>, source: impl Into<String>) -> Self {
         Self {
             id: EventId::new(),
@@ -94,6 +97,7 @@ impl Event {
     }
 
     /// Return the topic string.
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.meta.topic
     }

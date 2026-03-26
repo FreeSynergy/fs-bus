@@ -12,18 +12,7 @@ use crate::topic::{topic_matches, TopicHandler};
 
 /// Routes events to registered [`TopicHandler`]s by glob-pattern matching.
 ///
-/// Handlers are matched by [`TopicHandler::topic_pattern`] against the event
-/// topic. All matching handlers are called; results are collected and returned.
-///
-/// # Example
-///
-/// ```rust,ignore
-/// use fs_bus::{Router, Event};
-///
-/// let mut router = Router::new();
-/// router.register(Arc::new(my_handler));
-/// let results = router.dispatch(&event).await;
-/// ```
+/// All matching handlers are called; results are collected and returned.
 #[derive(Default)]
 pub struct Router {
     handlers: Vec<Arc<dyn TopicHandler>>,
@@ -31,6 +20,7 @@ pub struct Router {
 
 impl Router {
     /// Create an empty router.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -68,6 +58,7 @@ impl Router {
     }
 
     /// Return the number of registered handlers.
+    #[must_use]
     pub fn handler_count(&self) -> usize {
         self.handlers.len()
     }
@@ -143,7 +134,7 @@ mod tests {
         }));
 
         let ev = Event::new("deploy.started", "test", ()).unwrap();
-        router.dispatch(&ev).await;
+        let _ = router.dispatch(&ev).await;
         assert_eq!(c1.load(Ordering::SeqCst), 1);
         assert_eq!(c2.load(Ordering::SeqCst), 1);
     }
