@@ -1,0 +1,37 @@
+[package]
+name        = "fs-bus"
+description = "Async event bus with topic routing, retry, and Tera transforms for FreeSynergy"
+version     = "0.1.0"
+edition     = "2021"
+license     = "MIT"
+authors     = ["FreeSynergy.Net"]
+repository  = "https://github.com/FreeSynergy/fs-bus"
+
+[features]
+default         = []
+tera-transform  = ["dep:tera", "dep:fs-template"]
+bridge          = ["dep:reqwest"]
+
+[dependencies]
+fs-types    = { path = "../fs-libs/fs-types" }
+
+tokio       = { version = "1", features = ["full"] }
+serde       = { version = "1", features = ["derive"] }
+serde_json  = { version = "1" }
+toml        = { version = "1", features = ["preserve_order"] }
+thiserror   = { version = "2" }
+backon      = { version = "1", features = ["tokio-sleep"] }
+tracing     = { version = "0.1" }
+async-trait = { version = "0.1" }
+uuid        = { version = "1", features = ["v4", "serde"] }
+chrono      = { version = "0.4", features = ["serde"] }
+
+# Optional — bus-to-bus bridge (HTTP forwarding)
+reqwest     = { version = "0.13", features = ["json", "rustls", "form", "query"], default-features = false, optional = true }
+
+# Optional — tera-transform feature
+tera        = { version = "1", optional = true }
+fs-template = { path = "../fs-libs/fs-template", optional = true }
+
+[package.metadata.cargo-machete]
+ignored = ["fs-template"]  # optional dep activated only by tera-transform feature
