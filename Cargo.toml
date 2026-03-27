@@ -31,7 +31,7 @@ reqwest     = { version = "0.13", features = ["json", "rustls", "form", "query"]
 
 # Optional — tera-transform feature
 tera        = { version = "1", optional = true }
-fs-template = { path = "../fs-libs/fs-template", optional = true }
+fs-template = { path = "../fs-node/cli/crates/fs-template", optional = true }
 
 [package.metadata.cargo-machete]
 ignored = ["fs-template"]  # optional dep activated only by tera-transform feature
