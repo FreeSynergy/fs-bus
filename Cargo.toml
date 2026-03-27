@@ -36,6 +36,7 @@ fs-template = { path = "../fs-node/cli/crates/fs-template", optional = true }
 [dev-dependencies]
 fs-inventory = { path = "../fs-inventory" }
 fs-registry  = { path = "../fs-registry" }
+fs-store     = { path = "../fs-store/crates/fs-store" }
 tokio        = { version = "1", features = ["full"] }
 
 [package.metadata.cargo-machete]
