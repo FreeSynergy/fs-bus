@@ -10,6 +10,7 @@
 use std::sync::Arc;
 
 use fs_bus::{BusMessage, Event, MessageBus};
+use fs_db::engine::DbConfig;
 use fs_inventory::{Inventory, InventoryBusHandler, PackageInstalledPayload};
 use fs_registry::{Registry, RegistryBusHandler, ServiceStartedPayload};
 
@@ -17,7 +18,11 @@ use fs_registry::{Registry, RegistryBusHandler, ServiceStartedPayload};
 
 #[tokio::test]
 async fn installer_event_recorded_in_inventory() {
-    let inv = Arc::new(Inventory::open(":memory:").await.expect("open inventory"));
+    let inv = Arc::new(
+        Inventory::open(DbConfig::sqlite(":memory:"))
+            .await
+            .expect("open inventory"),
+    );
     let handler = Arc::new(InventoryBusHandler::new(Arc::clone(&inv)));
 
     let mut bus = MessageBus::new();
@@ -129,7 +134,11 @@ async fn service_stopped_deregistered_from_registry() {
 
 #[tokio::test]
 async fn full_chain_start_registers_in_bus_and_registry() {
-    let inv = Arc::new(Inventory::open(":memory:").await.expect("inventory"));
+    let inv = Arc::new(
+        Inventory::open(DbConfig::sqlite(":memory:"))
+            .await
+            .expect("inventory"),
+    );
     let reg = Arc::new(Registry::open(":memory:").await.expect("registry"));
 
     let mut bus = MessageBus::new();

@@ -12,6 +12,7 @@
 use std::sync::Arc;
 
 use fs_bus::{BusMessage, Event, MessageBus};
+use fs_db::engine::DbConfig;
 use fs_inventory::{Inventory, InventoryBusHandler, PackageInstalledPayload, ReleaseChannel};
 use fs_registry::{Registry, RegistryBusHandler, ServiceStartedPayload};
 use fs_store::release::Platform;
@@ -25,7 +26,11 @@ const STORE_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../Store");
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 async fn setup_bus() -> (MessageBus, Arc<Inventory>, Arc<Registry>) {
-    let inv = Arc::new(Inventory::open(":memory:").await.expect("inventory"));
+    let inv = Arc::new(
+        Inventory::open(DbConfig::sqlite(":memory:"))
+            .await
+            .expect("inventory"),
+    );
     let reg = Arc::new(Registry::open(":memory:").await.expect("registry"));
 
     let mut bus = MessageBus::new();

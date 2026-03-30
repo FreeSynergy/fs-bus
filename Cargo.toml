@@ -34,6 +34,7 @@ tera        = { version = "1", optional = true }
 fs-template = { path = "../fs-node/cli/crates/fs-template", optional = true }
 
 [dev-dependencies]
+fs-db        = { path = "../fs-db" }
 fs-inventory = { path = "../fs-inventory" }
 fs-registry  = { path = "../fs-registry" }
 fs-store     = { path = "../fs-store/crates/fs-store" }
