@@ -29,6 +29,7 @@ pub mod router;
 pub mod standing_order;
 pub mod subscription;
 pub mod topic;
+pub mod topics;
 pub mod transform;
 
 // ── Flat re-exports ───────────────────────────────────────────────────────────
