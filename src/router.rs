@@ -94,11 +94,11 @@ mod tests {
         let count = Arc::new(AtomicU32::new(0));
         let mut router = Router::new();
         router.register(Arc::new(Counter {
-            pattern: "deploy.*",
+            pattern: "deploy::*",
             count: count.clone(),
         }));
 
-        let ev = Event::new("deploy.started", "test", ()).unwrap();
+        let ev = Event::new("deploy::started", "test", ()).unwrap();
         let results = router.dispatch(&ev).await;
         assert_eq!(results.len(), 1);
         assert_eq!(count.load(Ordering::SeqCst), 1);
@@ -109,11 +109,11 @@ mod tests {
         let count = Arc::new(AtomicU32::new(0));
         let mut router = Router::new();
         router.register(Arc::new(Counter {
-            pattern: "health.*",
+            pattern: "health::*",
             count: count.clone(),
         }));
 
-        let ev = Event::new("deploy.started", "test", ()).unwrap();
+        let ev = Event::new("deploy::started", "test", ()).unwrap();
         let results = router.dispatch(&ev).await;
         assert!(results.is_empty());
         assert_eq!(count.load(Ordering::SeqCst), 0);
@@ -129,11 +129,11 @@ mod tests {
             count: c1.clone(),
         }));
         router.register(Arc::new(Counter {
-            pattern: "deploy.*",
+            pattern: "deploy::*",
             count: c2.clone(),
         }));
 
-        let ev = Event::new("deploy.started", "test", ()).unwrap();
+        let ev = Event::new("deploy::started", "test", ()).unwrap();
         let _ = router.dispatch(&ev).await;
         assert_eq!(c1.load(Ordering::SeqCst), 1);
         assert_eq!(c2.load(Ordering::SeqCst), 1);

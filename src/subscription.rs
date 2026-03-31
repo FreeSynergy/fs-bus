@@ -154,10 +154,10 @@ mod tests {
     #[test]
     fn basic_matching() {
         let mut mgr = SubscriptionManager::new();
-        mgr.add(make_sub("chat", "chat.*"));
-        mgr.add(make_sub("iam", "auth.*"));
+        mgr.add(make_sub("chat", "chat::*"));
+        mgr.add(make_sub("iam", "auth::*"));
 
-        let matched = mgr.matching("chat.message", None);
+        let matched = mgr.matching("chat::message", None);
         assert_eq!(matched.len(), 1);
         assert_eq!(matched[0].subscriber_role, "chat");
     }
@@ -167,9 +167,9 @@ mod tests {
         let mut mgr = SubscriptionManager::new();
         mgr.add(make_sub("chat", "#").with_inst_tag("chat-primary"));
 
-        assert_eq!(mgr.matching("any.topic", Some("chat-primary")).len(), 1);
-        assert_eq!(mgr.matching("any.topic", Some("chat-secondary")).len(), 0);
-        assert_eq!(mgr.matching("any.topic", None).len(), 0);
+        assert_eq!(mgr.matching("any::topic", Some("chat-primary")).len(), 1);
+        assert_eq!(mgr.matching("any::topic", Some("chat-secondary")).len(), 0);
+        assert_eq!(mgr.matching("any::topic", None).len(), 0);
     }
 
     #[test]
@@ -177,7 +177,7 @@ mod tests {
         let mut mgr = SubscriptionManager::new();
         mgr.add(make_sub("chat", "#").deny_read());
 
-        assert!(mgr.matching("any.topic", None).is_empty());
+        assert!(mgr.matching("any::topic", None).is_empty());
     }
 
     #[test]
@@ -192,9 +192,9 @@ mod tests {
     #[test]
     fn for_role() {
         let mut mgr = SubscriptionManager::new();
-        mgr.add(make_sub("chat", "chat.*"));
-        mgr.add(make_sub("chat", "alert.*"));
-        mgr.add(make_sub("iam", "auth.*"));
+        mgr.add(make_sub("chat", "chat::*"));
+        mgr.add(make_sub("chat", "alert::*"));
+        mgr.add(make_sub("iam", "auth::*"));
 
         assert_eq!(mgr.for_role("chat").len(), 2);
         assert_eq!(mgr.for_role("iam").len(), 1);

@@ -127,21 +127,21 @@ mod tests {
 
     #[test]
     fn should_forward_matching_topic() {
-        let b = bridge(&["deploy.*", "health.*"]);
-        assert!(b.should_forward("deploy.started"));
-        assert!(b.should_forward("health.check"));
-        assert!(!b.should_forward("chat.message"));
+        let b = bridge(&["deploy::*", "health::*"]);
+        assert!(b.should_forward("deploy::started"));
+        assert!(b.should_forward("health::check"));
+        assert!(!b.should_forward("chat::message"));
     }
 
     #[test]
     fn should_forward_wildcard() {
         let b = bridge(&["#"]);
-        assert!(b.should_forward("anything.at.all"));
+        assert!(b.should_forward("anything::at::all"));
     }
 
     #[test]
     fn should_not_forward_empty_allowed() {
         let b = bridge(&[]);
-        assert!(!b.should_forward("deploy.started"));
+        assert!(!b.should_forward("deploy::started"));
     }
 }

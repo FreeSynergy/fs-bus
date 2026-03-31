@@ -156,7 +156,7 @@ mod tests {
     const SAMPLE_TOML: &str = r##"
 [[rules]]
 name          = "auth-guaranteed"
-topic_pattern = "auth.*"
+topic_pattern = "auth::*"
 source_role   = "iam"
 delivery      = "guaranteed"
 storage       = "until-ack"
@@ -181,7 +181,7 @@ priority      = 0
     #[test]
     fn match_auth_rule() {
         let cfg = RoutingConfig::from_toml(SAMPLE_TOML).unwrap();
-        let rule = cfg.match_rule("auth.login", Some("iam")).unwrap();
+        let rule = cfg.match_rule("auth::login", Some("iam")).unwrap();
         assert_eq!(rule.name, "auth-guaranteed");
         assert_eq!(rule.delivery, DeliveryType::Guaranteed);
     }
@@ -189,7 +189,7 @@ priority      = 0
     #[test]
     fn fallback_to_catch_all() {
         let cfg = RoutingConfig::from_toml(SAMPLE_TOML).unwrap();
-        let rule = cfg.match_rule("deploy.started", None).unwrap();
+        let rule = cfg.match_rule("deploy::started", None).unwrap();
         assert_eq!(rule.name, "catch-all");
     }
 
@@ -197,7 +197,7 @@ priority      = 0
     fn delivery_for_shorthand() {
         let cfg = RoutingConfig::from_toml(SAMPLE_TOML).unwrap();
         assert_eq!(
-            cfg.delivery_for("auth.login", Some("iam")),
+            cfg.delivery_for("auth::login", Some("iam")),
             DeliveryType::Guaranteed
         );
         assert_eq!(
@@ -210,7 +210,7 @@ priority      = 0
     fn empty_config_fallback() {
         let cfg = RoutingConfig::default();
         assert_eq!(
-            cfg.delivery_for("any.topic", None),
+            cfg.delivery_for("any::topic", None),
             DeliveryType::FireAndForget
         );
         assert_eq!(cfg.storage_for("any.topic", None), StorageType::NoStore);

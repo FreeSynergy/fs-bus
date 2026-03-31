@@ -223,10 +223,10 @@ mod tests {
     #[tokio::test]
     async fn publish_delivers_to_subscriptions() {
         let mut bus = MessageBus::new();
-        bus.subscribe(Subscription::new("chat", "chat.*"));
-        bus.subscribe(Subscription::new("iam", "auth.*"));
+        bus.subscribe(Subscription::new("chat", "chat::*"));
+        bus.subscribe(Subscription::new("iam", "auth::*"));
 
-        let ev = Event::new("chat.message", "chat-svc", json!({})).unwrap();
+        let ev = Event::new("chat::message", "chat-svc", json!({})).unwrap();
         let result = bus.publish(BusMessage::fire(ev)).await;
 
         assert_eq!(result.delivered_to, vec!["chat".to_string()]);
@@ -237,7 +237,7 @@ mod tests {
         let toml = r#"
 [[rules]]
 name          = "auth"
-topic_pattern = "auth.*"
+topic_pattern = "auth::*"
 delivery      = "guaranteed"
 storage       = "until-ack"
 priority      = 10
@@ -245,7 +245,7 @@ priority      = 10
         let mut bus = MessageBus::new();
         bus.load_config_toml(toml).unwrap();
 
-        let ev = Event::new("auth.login", "iam", json!({})).unwrap();
+        let ev = Event::new("auth::login", "iam", json!({})).unwrap();
         let msg = BusMessage::fire(ev);
         let result = bus.publish(msg).await;
 
@@ -259,14 +259,14 @@ priority      = 10
         bus.add_standing_order(StandingOrder::new(
             "greet-chat",
             "chat",
-            "system.hello",
+            "system::hello",
             json!({}),
         ));
 
         let events = bus.trigger_role("chat");
         assert_eq!(events.len(), 1);
         let ev = events[0].as_ref().unwrap();
-        assert_eq!(ev.topic(), "system.hello");
+        assert_eq!(ev.topic(), "system::hello");
     }
 
     #[test]
