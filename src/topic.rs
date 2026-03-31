@@ -15,10 +15,12 @@ use crate::event::Event;
 ///
 /// # Pattern syntax
 ///
-/// - `"deploy.started"` — exact match
-/// - `"deploy.*"` — matches one segment wildcard (`deploy.started`, `deploy.failed`)
-/// - `"*"` — matches any single-segment topic
-/// - `"#"` — matches any topic (greedy, any number of segments)
+/// Topics use `::` as separator (`"registry::service::registered"`).
+///
+/// - `"registry::service::registered"` — exact match
+/// - `"registry::*"` — namespace wildcard: matches all registry topics
+/// - `"registry::service::*"` — trailing wildcard: matches `registry::service::registered` etc.
+/// - `"#"` — greedy: matches any topic
 ///
 /// # Example
 ///
@@ -30,7 +32,7 @@ use crate::event::Event;
 ///
 /// #[async_trait]
 /// impl TopicHandler for DeployLogger {
-///     fn topic_pattern(&self) -> &str { "deploy.*" }
+///     fn topic_pattern(&self) -> &str { "deploy::*" }
 ///
 ///     async fn handle(&self, event: &Event) -> Result<(), BusError> {
 ///         println!("deploy event: {}", event.topic());
@@ -55,16 +57,26 @@ pub trait TopicHandler: Send + Sync {
 
 /// Check whether `pattern` matches `topic`.
 ///
-/// - `#` in `pattern` matches any number of dot-separated segments.
-/// - `*` matches exactly one segment (no dots).
+/// Topics and patterns use `::` as a segment separator, e.g.:
+///   `"registry::service::registered"`, `"registry::service::*"`, `"registry::#"`.
+///
+/// - `#` as the last pattern segment matches any number of remaining `::‑separated` segments
+///   (greedy namespace wildcard).
+/// - `*` matches exactly **one** segment.
 /// - Anything else must equal the corresponding segment literally.
+///
+/// Examples:
+/// - `"registry::#"` matches all registry topics of any depth (greedy)
+/// - `"registry::service::*"` matches `"registry::service::registered"` etc. (exact 3rd segment)
+/// - `"registry::service::registered"` matches only itself (exact match)
+/// - `"*"` matches any single-segment topic
 #[must_use]
 pub fn topic_matches(pattern: &str, topic: &str) -> bool {
     if pattern == "#" {
         return true;
     }
-    let mut pat_parts = pattern.split('.');
-    let mut top_parts = topic.split('.');
+    let mut pat_parts = pattern.split("::");
+    let mut top_parts = topic.split("::");
 
     loop {
         match (pat_parts.next(), top_parts.next()) {
@@ -84,26 +96,47 @@ mod tests {
 
     #[test]
     fn exact_match() {
-        assert!(topic_matches("deploy.started", "deploy.started"));
-        assert!(!topic_matches("deploy.started", "deploy.failed"));
+        assert!(topic_matches("deploy::started", "deploy::started"));
+        assert!(!topic_matches("deploy::started", "deploy::failed"));
     }
 
     #[test]
     fn single_wildcard() {
-        assert!(topic_matches("deploy.*", "deploy.started"));
-        assert!(topic_matches("deploy.*", "deploy.failed"));
-        assert!(!topic_matches("deploy.*", "deploy.started.now"));
+        assert!(topic_matches("deploy::*", "deploy::started"));
+        assert!(topic_matches("deploy::*", "deploy::failed"));
+        assert!(!topic_matches("deploy::*", "deploy::started::now"));
     }
 
     #[test]
     fn greedy_wildcard() {
-        assert!(topic_matches("#", "deploy.started"));
-        assert!(topic_matches("#", "anything.at.all"));
-        assert!(topic_matches("deploy.#", "deploy.started.now"));
+        assert!(topic_matches("#", "deploy::started"));
+        assert!(topic_matches("#", "anything::at::all"));
+        assert!(topic_matches("deploy::#", "deploy::started::now"));
     }
 
     #[test]
     fn no_match() {
-        assert!(!topic_matches("health.*", "deploy.started"));
+        assert!(!topic_matches("health::*", "deploy::started"));
+    }
+
+    #[test]
+    fn registry_namespace() {
+        // # is the greedy namespace wildcard.
+        assert!(topic_matches(
+            "registry::#",
+            "registry::service::registered"
+        ));
+        assert!(topic_matches("registry::#", "registry::service::stopped"));
+        assert!(topic_matches("registry::#", "registry::capability::added"));
+        assert!(!topic_matches("registry::#", "session::user::login"));
+        // * matches exactly one segment.
+        assert!(topic_matches(
+            "registry::service::*",
+            "registry::service::registered"
+        ));
+        assert!(!topic_matches(
+            "registry::service::*",
+            "registry::service::registered::extra"
+        ));
     }
 }

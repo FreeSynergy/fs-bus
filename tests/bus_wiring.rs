@@ -1,20 +1,23 @@
 // F3 Integration test: fs-bus ↔ fs-inventory ↔ fs-registry
 //
 // Verifies that:
-//   1. fs-inventory subscribes to installer::* bus messages
-//      → installer.package.installed → resource appears in inventory
-//   2. fs-registry subscribes to service::* bus messages
-//      → service.started → service appears in registry
+//   1. fs-inventory subscribes to inventory::package::* bus events
+//      → inventory::package::installed → resource appears in inventory
+//   2. fs-registry subscribes to registry::service::* bus events
+//      → registry::service::registered → service appears in registry
 //   3. Full chain: service starts → bus fires → registry knows it
 
 use std::sync::Arc;
 
+use fs_bus::topics::{
+    INVENTORY_PACKAGE_INSTALLED, REGISTRY_SERVICE_REGISTERED, REGISTRY_SERVICE_STOPPED,
+};
 use fs_bus::{BusMessage, Event, MessageBus};
 use fs_db::engine::DbConfig;
 use fs_inventory::{Inventory, InventoryBusHandler, PackageInstalledPayload};
 use fs_registry::{Registry, RegistryBusHandler, ServiceStartedPayload};
 
-// ── F3.1: installer.package.installed → fs-inventory ─────────────────────────
+// ── F3.1: inventory::package::installed → fs-inventory ───────────────────────
 
 #[tokio::test]
 async fn installer_event_recorded_in_inventory() {
@@ -36,8 +39,7 @@ async fn installer_event_recorded_in_inventory() {
         data_path: String::new(),
     };
 
-    let event =
-        Event::new("installer.package.installed", "fs-store", payload).expect("build event");
+    let event = Event::new(INVENTORY_PACKAGE_INSTALLED, "fs-store", payload).expect("build event");
     let result = bus.publish(BusMessage::fire(event)).await;
     assert!(
         !result.has_errors(),
@@ -55,7 +57,7 @@ async fn installer_event_recorded_in_inventory() {
     assert_eq!(resource.version, "1.4.2");
 }
 
-// ── F3.2: service.started → fs-registry ──────────────────────────────────────
+// ── F3.2: registry::service::registered → fs-registry ────────────────────────
 
 #[tokio::test]
 async fn service_started_registered_in_registry() {
@@ -71,7 +73,7 @@ async fn service_started_registered_in_registry() {
         endpoint: "http://kanidm:8443".into(),
     };
 
-    let event = Event::new("service.started", "kanidm", payload).expect("build event");
+    let event = Event::new(REGISTRY_SERVICE_REGISTERED, "kanidm", payload).expect("build event");
     let result = bus.publish(BusMessage::fire(event)).await;
     assert!(
         !result.has_errors(),
@@ -89,7 +91,7 @@ async fn service_started_registered_in_registry() {
     assert_eq!(entries[0].endpoint, "http://kanidm:8443");
 }
 
-// ── F3.3: service.stopped → deregistered ─────────────────────────────────────
+// ── F3.3: registry::service::stopped → deregistered ──────────────────────────
 
 #[tokio::test]
 async fn service_stopped_deregistered_from_registry() {
@@ -106,7 +108,7 @@ async fn service_stopped_deregistered_from_registry() {
         endpoint: "http://stalwart:25".into(),
     };
     bus.publish(BusMessage::fire(
-        Event::new("service.started", "stalwart", start).unwrap(),
+        Event::new(REGISTRY_SERVICE_REGISTERED, "stalwart", start).unwrap(),
     ))
     .await;
 
@@ -118,7 +120,7 @@ async fn service_stopped_deregistered_from_registry() {
     };
     let result = bus
         .publish(BusMessage::fire(
-            Event::new("service.stopped", "stalwart", stop).unwrap(),
+            Event::new(REGISTRY_SERVICE_STOPPED, "stalwart", stop).unwrap(),
         ))
         .await;
     assert!(!result.has_errors());
@@ -148,7 +150,7 @@ async fn full_chain_start_registers_in_bus_and_registry() {
     // Program installs
     bus.publish(BusMessage::fire(
         Event::new(
-            "installer.package.installed",
+            INVENTORY_PACKAGE_INSTALLED,
             "fs-store",
             PackageInstalledPayload {
                 id: "forgejo".into(),
@@ -165,7 +167,7 @@ async fn full_chain_start_registers_in_bus_and_registry() {
     // Program registers capability
     bus.publish(BusMessage::fire(
         Event::new(
-            "service.started",
+            REGISTRY_SERVICE_REGISTERED,
             "forgejo",
             ServiceStartedPayload {
                 service_id: "forgejo".into(),

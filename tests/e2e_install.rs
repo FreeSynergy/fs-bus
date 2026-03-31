@@ -11,6 +11,7 @@
 
 use std::sync::Arc;
 
+use fs_bus::topics::{INVENTORY_PACKAGE_INSTALLED, REGISTRY_SERVICE_REGISTERED};
 use fs_bus::{BusMessage, Event, MessageBus};
 use fs_db::engine::DbConfig;
 use fs_inventory::{Inventory, InventoryBusHandler, PackageInstalledPayload, ReleaseChannel};
@@ -82,7 +83,7 @@ async fn install_event_recorded_in_inventory() {
         data_path: String::new(),
     };
     let event =
-        Event::new("installer.package.installed", "fs-store-app", payload).expect("build event");
+        Event::new("inventory::package::installed", "fs-store-app", payload).expect("build event");
     let result = bus.publish(BusMessage::fire(event)).await;
     assert!(!result.has_errors(), "bus errors: {:?}", result.errors());
 
@@ -107,8 +108,12 @@ async fn service_start_event_registered_in_registry() {
         capability: "container".into(),
         endpoint: "http://localhost:9100".into(),
     };
-    let event =
-        Event::new("service.started", "fs-manager-container", payload).expect("build event");
+    let event = Event::new(
+        "registry::service::registered",
+        "fs-manager-container",
+        payload,
+    )
+    .expect("build event");
     let result = bus.publish(BusMessage::fire(event)).await;
     assert!(!result.has_errors(), "bus errors: {:?}", result.errors());
 
@@ -157,7 +162,7 @@ async fn full_install_chain() {
     };
     bus.publish(BusMessage::fire(
         Event::new(
-            "installer.package.installed",
+            "inventory::package::installed",
             "fs-store-app",
             install_payload,
         )
@@ -172,7 +177,12 @@ async fn full_install_chain() {
         endpoint: "http://localhost:9100".into(),
     };
     bus.publish(BusMessage::fire(
-        Event::new("service.started", "fs-manager-container", start_payload).expect("build event"),
+        Event::new(
+            "registry::service::registered",
+            "fs-manager-container",
+            start_payload,
+        )
+        .expect("build event"),
     ))
     .await;
 
