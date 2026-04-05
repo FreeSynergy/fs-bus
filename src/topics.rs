@@ -70,6 +70,29 @@ pub const SYSTEM_NODE_STARTED: &str = "system::node::started";
 /// Node is shutting down.
 pub const SYSTEM_NODE_STOPPING: &str = "system::node::stopping";
 
+// ── federation:: ──────────────────────────────────────────────────────────────
+
+/// A federation invite was sent to a remote actor.
+pub const FEDERATION_INVITE_SENT: &str = "federation::invite::sent";
+
+/// A remote actor accepted a federation invite from this node.
+pub const FEDERATION_INVITE_ACCEPTED: &str = "federation::invite::accepted";
+
+/// A remote actor followed a local actor.
+pub const FEDERATION_ACTOR_FOLLOWED: &str = "federation::actor::followed";
+
+/// A local actor unfollowed a remote actor.
+pub const FEDERATION_ACTOR_UNFOLLOWED: &str = "federation::actor::unfollowed";
+
+/// An activity was announced (boosted) to all followers.
+pub const FEDERATION_ACTIVITY_ANNOUNCED: &str = "federation::activity::announced";
+
+/// The rights for a remote domain were updated.
+pub const FEDERATION_RIGHTS_UPDATED: &str = "federation::rights::updated";
+
+/// A remote domain was blocked (all rights revoked).
+pub const FEDERATION_DOMAIN_BLOCKED: &str = "federation::domain::blocked";
+
 // ── auth:: ────────────────────────────────────────────────────────────────────
 
 /// A new user account was created.
@@ -111,6 +134,13 @@ mod tests {
             SYSTEM_HEALTH_RESTORED,
             SYSTEM_NODE_STARTED,
             SYSTEM_NODE_STOPPING,
+            FEDERATION_INVITE_SENT,
+            FEDERATION_INVITE_ACCEPTED,
+            FEDERATION_ACTOR_FOLLOWED,
+            FEDERATION_ACTOR_UNFOLLOWED,
+            FEDERATION_ACTIVITY_ANNOUNCED,
+            FEDERATION_RIGHTS_UPDATED,
+            FEDERATION_DOMAIN_BLOCKED,
             AUTH_USER_CREATED,
             AUTH_USER_DELETED,
             AUTH_USER_UPDATED,
